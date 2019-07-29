@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
 from sklearn.cluster import MiniBatchKMeans
 from sklearn.preprocessing import PolynomialFeatures
-import datetime 
+import datetime
 import pytz
 from pytz import timezone
 import tarfile
@@ -29,7 +29,12 @@ h5 = h5py.File('sound_data_improved.hdf5', 'r')
 
 d = h5['sound_data']
 
-pca_106 = sklearnPCA(106) 
+sample_nums = np.random.choice(range(d.shape[0]), 10000, replace=False)
+
+index = np.zeros(d.shape[0]).astype('bool')
+index[sample_nums] = True
+
+pca_106 = sklearnPCA(106)
 projected = pca_106.fit_transform(d['feature_vector'])
 
 projected_tsne = TSNE(n_components=2).fit_transform(projected)
@@ -37,80 +42,97 @@ projected_tsne = TSNE(n_components=2).fit_transform(projected)
 # Nearest Neighbors and Corresponding Audio Files
 
 def get_cluster_centers(num_clusters):
+    """
+
+    Parameters
+    ----------
+    num_clusters
+
+    Returns
+    -------
+    mbk.cluster_centers_ : array of shape (num_clusters, 45)
+        An array of the feature vectors for each centroid in each cluster.
+
+    """
     mbk = MiniBatchKMeans(n_clusters=num_clusters, random_state=0)
     mbk_clusters = mbk.fit_predict(projected)
     return mbk.cluster_centers_
 
-def nearest_neighbors_df(num_clusters):
-    cluster_centers_ = get_cluster_centers(num_clusters)
-    size = cluster_centers_.shape[0]*5
-    neighbors_arr = []
+
+def make_neighbors_dataframe(num_clusters):
+    """
+    Returns a DataFrame with the information (timestamp, filepath, etc) from five neighbors of each centroid in each
+    cluster the data is grouped into.
+
+    Parameters
+    ----------
+    num_clusters : int
+        Number of clusters to group the projected data into.
+
+    Returns
+    -------
+    df : DataFrame
+        pandas DataFrame listing information about each neighbor, including timestamp, filepath, the centroid it is
+        associated with, and the number of clusters the projected data is grouped into.
+    """
+    tree = spatial.KDTree(projected[index])
+
+    cluster_centers = get_cluster_centers(num_clusters)
+
+    nearest_neighbors = tree.query(cluster_centers, 5)
+
+    # Creates array of indices of elements in projected_45 that match the neighbors
+    # Creating array of centroid feature vectors corresponding to each neighbor, also which centroid the neighbor belongs to
+
     centroids = []
+    neighbors_arr = []
     centroid_num_arr = []
-    num_clusters_arr = size*[num_clusters]
-    neighbors_timestamps_orig = []
-    neighbors_timestamps = []
-    neighbors_sensor_id = []
-    neighbors_file_path = []
-    neighbors_file_path_cut = []
-    neighbors_timestamps_dt = np.empty(size, dtype = datetime.datetime)
-    nearest_neighbors = tree.query(cluster_centers_, 5)
-    make_neighbors_arr(nearest_neighbors, centroid_num, cluster_centers_, neighbors_arr, centroids, centroid_num_arr)
-    retrieve_neighbors_info(neighbors_arr, neighbors_timestamps_orig, neighbors_timestamps, neighbors_sensor_id, neighbors_file_path)
-    cut_file_path(neighbors_file_path,  neighbors_file_path_cut)
-    convert_timestamp(neighbors_timestamps, size, neighbors_timestamps_dt)
-    return make_df(centroids, neighbors_timestamps_orig, neighbors_timestamps_dt, neighbors_sensor_id, \
-            neighbors_file_path_cut, centroid_num_arr, num_clusters_arr)
-
-def make_neighbors_arr(nearest_neighbors, centroid_num, cluster_centers_, neighbors_arr, centroids, centroid_num_arr):
-    centroid_num = 0
-    for x in nearest_neighbors[1]:
+    for centroid_num, x in enumerate(nearest_neighbors[1]):
         for y in x:
-            feature_vector = projected[y]
-            neighbors_idx = stats.mode(np.where(projected==feature_vector)[0])
-            #Have to do mode because matches in projected_45 covered almost a whole row, but in some cases shifted a little
-            neighbors_arr.append(neighbors_idx.mode[0])
-            centroids.append(cluster_centers_[centroid_num])
-            centroid_num_arr.append(centroid_num+1)
-        centroid_num += 1
+            neighbors_idx = np.nonzero(index)[0][y]
+            neighbors_arr.append(neighbors_idx)
+            centroids.append(cluster_centers[centroid_num])
+            centroid_num_arr.append(centroid_num + 1)
 
-def retrieve_neighbors_info(neighbors_arr, neighbors_timestamps_orig, neighbors_timestamps, neighbors_sensor_id, neighbors_file_path):
-    for f in neighbors_arr:
-        neighbors_timestamps_orig.append(d[f, 'timestamp_orig'])
-        neighbors_timestamps.append(d[f, 'timestamp'])
-        neighbors_sensor_id.append(d[f, 'sensor_id'])
-        neighbors_file_path.append(d[f, 'file_path'])
+    # Mask for elements of d that are neighbors
+    index_2 = np.zeros(d.shape[0]).astype('bool')
+    index_2[np.sort(neighbors_arr)] = True
 
-def cut_file_path(neighbors_file_path, neighbors_file_path_cut):
-    for path in neighbors_file_path:
-        neighbors_file_path_cut.append(path[32:])
+    # Creating array with number of clusters for each entry
+    num_clusters_arr = len(neighbors_arr) * [num_clusters]
 
-def convert_timestamp(neighbors_timestamps, size, neighbors_timestamps_dt):
-    for i in range(size):
-        j = neighbors_timestamps[i]
+    # Converting timestamps to datetime format
+    neighbors_timestamps_dt = []
+    for i in range(len(neighbors_arr)):
+        j = d[index_2]['timestamp'][i]
         dt = datetime.datetime.utcfromtimestamp(j)
         dt = pytz.UTC.localize(dt)
         dt = dt.astimezone(pytz.timezone('US/Eastern'))
-        neighbors_timestamps_dt[i] = dt
+        neighbors_timestamps_dt.append(dt)
 
-def make_df(centroids, neighbors_timestamps_orig, neighbors_timestamps_dt, neighbors_sensor_id, \
-            neighbors_file_path_cut, centroid_num_arr, num_clusters_arr):
+    # Cutting the filepath so it starts with the sensor name
+    test_cut_path = []
+    cut_file_path(d[index_2]['file_path'], test_cut_path)
+
+    # Making the dataframe
     df = pd.DataFrame(centroids)
-    df.insert(0, "timestamp_orig", neighbors_timestamps_orig, True)
+    df.insert(0, "timestamp_orig", d[index_2]['timestamp_orig'], True)
     df.insert(1, "timestamp_dt", neighbors_timestamps_dt, True)
-    df.insert(2, "sensor_id", neighbors_sensor_id, True)
-    df.insert(3, "file_path", neighbors_file_path_cut, True)
+    df.insert(2, "sensor_id", d[index_2]['sensor_id'], True)
+    df.insert(3, "file_path", test_cut_path, True)
     df.insert(4, "centroid_num", centroid_num_arr, True)
     df.insert(5, "num_clusters", num_clusters_arr, True)
-#         all_df.append(df)
+
     return df
+
+# Creates one large DataFrame with nearest neighbors information for 2 to 15 clusters, then also 16, 32, and 64 clusters
 
 df_2 = nearest_neighbors_df(2)
 
 for n_clusters in range(3, 16):
-    df_2 = pd.concat([nearest_neighbors_df(n_clusters), df_2], ignore_index=True)
+    df_2 = pd.concat([make_neighbors_dataframe(n_clusters), df_2], ignore_index=True)
 
-for pow in range(4,7):
-    df_2 = pd.concat([nearest_neighbors_df(2**pow), df_2], ignore_index=True)
+for power in range(4, 7):
+    df_2 = pd.concat([make_neighbors_dataframe(2 ** power), df_2], ignore_index=True)
 
 df_2.to_csv('mbk_106.csv')
