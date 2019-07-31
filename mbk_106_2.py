@@ -39,9 +39,9 @@ projected = pca_106.fit_transform(d['feature_vector'])
 
 print('done with PCA')
 
-projected_tsne = TSNE(n_components=2).fit_transform(projected)
+# projected_tsne = TSNE(n_components=2).fit_transform(projected)
 
-print('done with TSNE')
+# print('done with TSNE')
 
 # Nearest Neighbors and Corresponding Audio Files
 
@@ -62,6 +62,14 @@ def get_cluster_centers(num_clusters):
     mbk_clusters = mbk.fit_predict(projected)
     return mbk.cluster_centers_
 
+
+def cut_file_path(neighbors_file_path, neighbors_file_path_cut):
+    """
+    Cuts a file name to start with the sensor name.
+    """
+    for path in neighbors_file_path:
+        neighbors_file_path_cut.append(path[32:])
+        
 
 def make_neighbors_dataframe(num_clusters):
     """
@@ -133,12 +141,21 @@ print('done with defining functions')
 
 # Creates one large DataFrame with nearest neighbors information for 2 to 15 clusters, then also 16, 32, and 64 clusters
 
-df_2 = nearest_neighbors_df(2)
+df_2 = make_neighbors_dataframe(2)
+df_2.to_csv('mbk_106_2.csv')
+
+print('done with creating dataframe for 2 clusters')
 
 for n_clusters in range(3, 16):
     df_2 = pd.concat([make_neighbors_dataframe(n_clusters), df_2], ignore_index=True)
+    df_2.to_csv('mbk_106_2.csv')
+    print('done with creating dataframe for' + str(n_clusters) + 'clusters')
+    
+
 
 for power in range(4, 7):
     df_2 = pd.concat([make_neighbors_dataframe(2 ** power), df_2], ignore_index=True)
+    df_2.to_csv('mbk_106_2.csv')
+    print('done with creating dataframe for' + str(power) + 'clusters')
 
-df_2.to_csv('mbk_106.csv')
+df_2.to_csv('mbk_106_2.csv')
