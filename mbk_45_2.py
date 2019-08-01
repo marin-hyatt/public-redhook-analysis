@@ -29,11 +29,6 @@ h5 = h5py.File('sound_data_improved.hdf5', 'r')
 
 d = h5['sound_data']
 
-sample_nums = np.random.choice(range(d.shape[0]), 10000, replace=False)
-
-index = np.zeros(d.shape[0]).astype('bool')
-index[sample_nums] = True
-
 pca_45 = sklearnPCA(45)
 projected = pca_45.fit_transform(d['feature_vector'])
 
@@ -87,7 +82,7 @@ def make_neighbors_dataframe(num_clusters):
         pandas DataFrame listing information about each neighbor, including timestamp, filepath, the centroid it is
         associated with, and the number of clusters the projected data is grouped into.
     """
-    tree = spatial.KDTree(projected[index])
+    tree = spatial.KDTree(projected)
 
     cluster_centers = get_cluster_centers(num_clusters)
 
@@ -101,8 +96,7 @@ def make_neighbors_dataframe(num_clusters):
     centroid_num_arr = []
     for centroid_num, x in enumerate(nearest_neighbors[1]):
         for y in x:
-            neighbors_idx = np.nonzero(index)[0][y]
-            neighbors_arr.append(neighbors_idx)
+            neighbors_arr.append(y)
             centroids.append(cluster_centers[centroid_num])
             centroid_num_arr.append(centroid_num + 1)
 
@@ -142,20 +136,20 @@ print('done with defining functions')
 # Creates one large DataFrame with nearest neighbors information for 2 to 15 clusters, then also 16, 32, and 64 clusters
 
 df_2 = make_neighbors_dataframe(2)
-df_2.to_csv('mbk_45_2.csv')
+df_2.to_csv('mbk_45_3.csv')
 
 print('done with creating dataframe for 2 clusters')
 
 for n_clusters in range(3, 16):
     df_2 = pd.concat([make_neighbors_dataframe(n_clusters), df_2], ignore_index=True)
-    df_2.to_csv('mbk_45_2.csv')
+    df_2.to_csv('mbk_45_3.csv')
     print('done with creating dataframe for' + str(n_clusters) + 'clusters')
     
 
 
 for power in range(4, 7):
     df_2 = pd.concat([make_neighbors_dataframe(2 ** power), df_2], ignore_index=True)
-    df_2.to_csv('mbk_45_2.csv')
+    df_2.to_csv('mbk_45_3.csv')
     print('done with creating dataframe for' + str(power) + 'clusters')
 
-df_2.to_csv('mbk_45_2.csv')
+df_2.to_csv('mbk_45_3.csv')
