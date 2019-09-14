@@ -1,1 +1,7 @@
 nohup: ignoring input
+Traceback (most recent call last):
+  File "mbk_45_2.py", line 16, in <module>
+    import h5py
+  File "/opt/rh/anaconda/root/lib/python2.7/site-packages/h5py/__init__.py", line 13, in <module>
+    from . import _errors
+ImportError: libhdf5.so.9: cannot open shared object file: No such file or directory

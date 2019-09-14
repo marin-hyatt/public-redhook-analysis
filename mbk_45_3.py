@@ -66,6 +66,16 @@ def get_cluster_model(num_clusters):
 def cut_file_path(neighbors_file_path):
     """
     Cuts a file name to start with the sensor name.
+    
+    Parameters
+    ----------
+    neighbors_file_path : string
+        String representing the file path.
+        
+    Returns
+    -------
+    neighbors_file_path[32:] : string
+        File path starting with the sensor name.
     """
     return(neighbors_file_path[32:])   
 
@@ -223,7 +233,7 @@ for n_clusters in range(3, 16):
     
 
 
-for power in range(4, 7):
+for power in range(4, 8):
     df_2 = pd.concat([make_neighbors_dataframe(2 ** power), df_2], ignore_index=True)
     df_2.to_csv('mbk_45_3.csv')
     print('done with creating dataframe for' + str(2**power) + 'clusters')
