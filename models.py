@@ -1,3 +1,140 @@
+def get_y_and_bins(num_clusters, sensor_transformed, fit_arr, sensor_timestamps_dt, default_bins, clusters_plot_arr):
+    """
+    Returns y values and bin values for a histogram of data. Used to determine the bin values for plotting the 
+    histogram.
+    
+    Parameters
+    ----------
+    num_clusters : int
+        The number of clusters to assign the data to.
+        
+    sensor_transformed : 45-dimensional array of floats
+        An array taken from projected_45 with only the feature vectors corresponding to one sensor.
+        
+    fit_arr : array of floats
+        45-dimensional array of feature vectors from all sensors
+        
+    sensor_timestamps_dt : datetime array
+        Numpy array with dtype=datetime.datetime, containing day values for each data point gathered for a specified
+        sensor.
+        
+    default_bins : int
+        Number of bins to group the data into at first.
+        
+    clusters_plot_arr : int array
+        The list of cluster indices to plot.
+        
+    Returns
+    -------
+    y : float array
+        Array of y values for the histogram
+        
+    bins : float array
+        Array of bin values, to input in the actual histogram plot so it accurately reflects units of time (e.g. days)
+        
+    """
+    
+    test = get_cluster_assignments(num_clusters, sensor_transformed, fit_arr)
+
+    cluster_mask = np.nonzero(test==clusters_plot_arr[0]) #boolean mask for specific cluster number
+        
+    #Makes array of all timestamps where cluster assignment occurred
+    timestamp_arr = np.asarray(sensor_timestamps_dt)[cluster_mask]
+        
+    #Get y values, bins
+    y, bins, _ = plt.hist(timestamp_arr, bins=default_bins)
+    
+    return y, bins
+
+def plot_clusters(num_clusters, sensor_transformed, fit_arr, sensor_timestamps_dt, spl_time, spl_dBAS_mean, \
+                  spl_dBAS_max, spl_dBAS_median, num_bins, clusters_plot_arr):
+    """
+    Plots a histogram of the frequency of cluster assignments over time for one sensor.
+    
+    Parameters
+    ----------
+    num_clusters : int
+        The number of clusters to assign the data to.
+        
+    sensor_transformed : 45-dimensional array of floats
+        An array taken from projected_45 with only the feature vectors corresponding to one sensor.
+        
+    fit_arr : array of floats
+        45-dimensional array of feature vectors from all sensors
+        
+    sensor_timestamps_dt : datetime array
+        Numpy array with dtype=datetime.datetime, containing day values for each data point gathered for a specified
+        sensor.
+        
+    spl_time : datetime array
+        Array of datetime objects corresponding to the SPL values.
+        
+    spl_dBAS_mean : array of floats
+        Array of SPL values corresponding to spl_time, averaged over each minute.
+        
+    spl_dBAS_max : array of floats
+        Array of SPL values corresponding to spl_time, consisting of the maximum value from each minute.
+        
+    spl_dBAS_median : array of floats
+        Array of SPL values corresponding to spl_time, consisting of the median value from each minute.
+    
+    num_bins : int
+        The number of bins to group the cluster frequency into.
+        
+    bin_arr : array of floats
+        Array of bin edges to group the cluster frequency into.
+        
+    clusters_plot_arr : arr of ints within the range(0, num_clusters)
+        The indices of the clusters to plot.
+    """
+    
+    #Setting the figure size, layout
+    fig = plt.figure(figsize=(15,100), dpi=60)
+    subplot_idx = 1
+    y_vals = [] #array of all y values, used to get ylim for graph
+
+    test = get_cluster_assignments(num_clusters, sensor_transformed, fit_arr)
+
+    for cluster_num in clusters_plot_arr:
+        cluster_mask = np.nonzero(test==cluster_num) #boolean mask for specific cluster number
+        
+        #If there are no instances of this cluster in the cluster assignments, don't graph
+        if(np.sum(cluster_mask) == 0):
+            continue
+        
+        
+        #Makes array of all timestamps where cluster assignment occurred
+        timestamp_arr = np.asarray(sensor_timestamps_dt)[cluster_mask]
+        
+        ax1 = fig.add_subplot(num_clusters, 1, subplot_idx)  
+        color = 'tab:red'
+        ax1.set_xlabel('time')
+        ax1.set_ylabel('cluster ' + str(cluster_num), color=color)
+    
+        #Get y values, bins
+        if(cluster_num == clusters_plot_arr[0]):
+            y, bins, _ = ax1.hist(timestamp_arr, bins=num_bins, color=color)
+
+        ax1.hist(timestamp_arr, bins=bins, color=color)
+        y_vals.append(y.max())
+        ax1.tick_params(axis='y', labelcolor=color)
+
+        ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+
+        color = 'tab:blue'
+        ax2.set_ylabel('dBAS', color=color)  # we already handled the x-label with ax1
+        ax2.plot(spl_time, spl_dBAS_mean, color=color)
+        ax2.plot(spl_time, spl_dBAS_max, color='black')
+        ax2.plot(spl_time, spl_dBAS_median, color='green')
+        ax2.tick_params(axis='y', labelcolor=color)
+
+        subplot_idx += 1 
+        ax1.set_ylim([0,max(y_vals)])
+    
+    plt.tight_layout()
+    plt.show()
+    return bins
+
 def plot_truck_clusters_all_measures(num_clusters, sensor_transformed, fit_arr, sensor_timestamps_dt, spl_time, spl_dBAS_mean, \
                   spl_dBAS_max, spl_dBAS_median, y_vals, bin_arr, clusters_plot_arr):
     """
