@@ -1,3 +1,82 @@
+def plot_truck_clusters_all_measures(num_clusters, sensor_transformed, fit_arr, sensor_timestamps_dt, spl_time, spl_dBAS_mean, \
+                  spl_dBAS_max, spl_dBAS_median, y_vals, bin_arr, clusters_plot_arr):
+    """
+    Plots a histogram of the frequency of cluster assignments over time for one sensor.
+    
+    Parameters
+    ----------
+    num_clusters : int
+        The number of clusters to assign the data to.
+        
+    sensor_transformed : 45-dimensional array of floats
+        An array taken from projected_45 with only the feature vectors corresponding to one sensor.
+        
+    fit_arr : array of floats
+        45-dimensional array of feature vectors from all sensors
+        
+    sensor_timestamps_dt : datetime array
+        Numpy array with dtype=datetime.datetime, containing day values for each data point gathered for a specified
+        sensor.
+        
+    spl_time : datetime array
+        Array of datetime objects corresponding to the SPL values.
+        
+    spl_dBAS_mean : array of floats
+        Array of SPL values corresponding to spl_time, averaged over each minute.
+        
+    spl_dBAS_max : array of floats
+        Array of SPL values corresponding to spl_time, consisting of the maximum value from each minute.
+        
+    spl_dBAS_median : array of floats
+        Array of SPL values corresponding to spl_time, consisting of the median value from each minute.
+        
+    y_vals : array of floats
+        array of y values used to calculate the ylim.
+        
+    bin_arr : array of floats
+        Array of bin edges to group the cluster frequency into.
+        
+    clusters_plot_arr : arr of ints within the range(0, num_clusters)
+        The indices of the clusters to plot.
+    """
+    test = get_cluster_assignments(num_clusters, sensor_transformed, fit_arr)
+    
+    total_timestamp_arr = []
+    y_maxes = [y_vals.max()] #list of all maxes of y values for each cluster number
+    for cluster_num in clusters_plot_arr:
+        cluster_mask = np.nonzero(test==cluster_num)
+        
+        if(np.sum(cluster_mask) == 0):
+            continue
+            
+        timestamp_arr = np.asarray(sensor_timestamps_dt)[cluster_mask]
+        for timestamp in timestamp_arr:
+            total_timestamp_arr.append(timestamp)
+    
+    fig, ax1 = plt.subplots()  
+    color = 'tab:red'
+    ax1.set_xlabel('time')
+    ax1.set_ylabel('truck clusters', color=color)
+        
+    y, x, _ = ax1.hist(total_timestamp_arr, bins=bin_arr, color=color)
+    y_maxes.append(y.max()) #might need to fix later
+    ax1.tick_params(axis='y', labelcolor=color)
+
+    ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+
+    color = 'tab:blue'
+    ax2.set_ylabel('dBAS', color=color)  # we already handled the x-label with ax1
+    ax2.plot(spl_time, spl_dBAS_mean, color=color)
+    ax2.plot(spl_time, spl_dBAS_max, color='black')
+    ax2.plot(spl_time, spl_dBAS_median, color='green')
+    ax2.tick_params(axis='y', labelcolor=color)
+
+    ax1.set_ylim([0,max(y_maxes)])
+    
+    fig.set_size_inches(18.5, 10.5)
+    fig.tight_layout()
+    fig.show()
+    
 def plot_truck_clusters(joined_df, peak_window_size, smoothing_window_size, ds_factor, smoothing):
     """
     Plots the SPL over time with visual cues indicating the presence of trucks over time for one sensor. The shaded
@@ -294,7 +373,7 @@ def plot_truck_clusters_median_shading(joined_df_median, peak_window_size, \
     fig.tight_layout()
     fig.show()
 
-def plot_truck_scatter_median_final(joined_df_median, peak_window_size, \
+def plot_truck_clusters_median_final(joined_df_median, peak_window_size, \
                                        smoothing_window_size, smoothing_window_size_ambient, ds_factor, smoothing):
     """
     This is the modeling function used in the presentation.
@@ -402,7 +481,7 @@ def plot_truck_scatter_median_final(joined_df_median, peak_window_size, \
     fig.tight_layout()
     fig.show()
 
-def plot_truck_normalized(joined_df_median, peak_window_size, \
+def plot_truck_clusters_normalized(joined_df_median, peak_window_size, \
                                        smoothing_window_size, smoothing_window_size_ambient, ds_factor, smoothing):
     """
     Plots the SPL normalized to the median SPL over time with visual cues indicating the presence of trucks over time for 
@@ -518,7 +597,7 @@ def plot_truck_normalized(joined_df_median, peak_window_size, \
     fig.tight_layout()
     fig.show()
 
-def plot_truck_normalized_final(joined_df_median, peak_window_size, \
+def plot_truck_clusters_normalized_final(joined_df_median, peak_window_size, \
                                        smoothing_window_size, smoothing_window_size_ambient, ds_factor, smoothing):
        """
     Plots the SPL normalized to the median.
