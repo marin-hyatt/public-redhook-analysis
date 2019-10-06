@@ -1,3 +1,27 @@
+def get_subsample_mask(num_samples, target_arr):
+    """
+    Returns a mask to apply on an array of data. The mask represents a random subsample of the data that contains num_samples
+    data points.
+    
+    Parameters
+    ----------
+    num_samples : int
+        The number of samples to randomly select from the data.
+        
+    target_arr : array
+        An array to take the subsample from.
+        
+    Returns
+    -------
+    index : boolean array
+        Mask to apply to target_arr that subsamples the values. The number of True values is num_samples.
+    """
+    sample_nums = np.random.choice(range(target_arr.shape[0]), num_samples, replace = False)
+    index = np.zeros(target_arr.shape[0]).astype('bool')
+    index[sample_nums] = True
+    
+    return index
+    
 def convert_timestamps(sensor_timestamp):
     """
     Converts a float timestamp to a datetime object.
@@ -112,4 +136,38 @@ def convert_to_hour(sensor_timestamp):
     hour = dt.astimezone(pytz.timezone('US/Eastern')).hour
     total_hour = 24*(day-1) + hour
     return total_hour
+
+def minute_average(time_arr, dBAS_arr):
+    """
+    Averages SPL over each minute and returns the averaged values in an array, along with an array of corresponding timestamps.
+    
+    Parameters
+    ----------
+    time_arr : array of timestamps
+        An array of timestamps. There should be a timestamp for every second.
+    
+    dBAS_arr : float array
+        Array of SPL values for each timestamp in time_arr. 
+        
+    Returns
+    -------
+    minute_time_arr : array of timestamps.
+        An array of timestamps. There should be one timestamp for every minute.
+        
+    minute_dBAS_arr : float array
+        An array of SPL values averaged over each minute.
+    """
+    minute_time_arr = np.empty(int(len(time_arr)/60), dtype = datetime.datetime)
+    minute_dBAS_arr = np.empty(int(len(time_arr)/60))
+
+    step = 60
+    i = 0
+    count = 0
+    while i < len(time_arr): 
+        minute_time_arr[count] = time_arr[i]
+        minute_dBAS_arr[count] = np.average(dBAS_arr[i:i+step])
+        i += step
+        count += 1
+        
+    return(minute_time_arr, minute_dBAS_arr)
 
