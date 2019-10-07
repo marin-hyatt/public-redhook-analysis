@@ -1,3 +1,43 @@
+import numpy as np
+import pandas as pd
+import matplotlib
+import matplotlib.pyplot as plt
+from sklearn.cluster import MiniBatchKMeans
+from pytz import timezone
+from pandas.plotting import register_matplotlib_converters
+register_matplotlib_converters()
+import librosa
+from scipy import signal
+from scipy import ndimage
+import matplotlib.dates as md
+
+def get_cluster_assignments(num_clusters, sensor_transformed, fit_arr):
+    """
+    Returns an array containing the number of each cluster each data point in sensor_transformed is assigned to.
+    Clustering is performed using MiniBatchKMeans.
+    
+    Parameters
+    ----------
+    num_clusters : int
+        The number of clusters to group sensor_transformed into.
+        
+    sensor_transformed : array of floats
+        45-dimensional array of feature vectors from one sensor 
+        
+    fit_arr : array of floats
+        45-dimensional array of feature vectors from all sensors
+        
+    Returns
+    -------
+    cluster_indices : int array
+        An array with the index of the cluster that each data point belongs to.
+        
+    """
+    mbk = MiniBatchKMeans(n_clusters=num_clusters, random_state=0)
+    mbk.fit(fit_arr)
+    cluster_indices = mbk.predict(sensor_transformed)
+    return cluster_indices
+
 def get_y_and_bins(num_clusters, sensor_transformed, fit_arr, sensor_timestamps_dt, default_bins, clusters_plot_arr):
     """
     Returns y values and bin values for a histogram of data. Used to determine the bin values for plotting the 

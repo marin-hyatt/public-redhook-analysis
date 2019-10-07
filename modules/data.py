@@ -1,3 +1,12 @@
+import numpy as np
+import pandas as pd
+from sklearn.cluster import MiniBatchKMeans
+import datetime 
+from datetime import timedelta
+import pytz
+from pytz import timezone
+import matplotlib.dates as md
+
 def get_subsample_mask(num_samples, target_arr):
     """
     Returns a mask to apply on an array of data. The mask represents a random subsample of the data that contains num_samples
@@ -90,7 +99,7 @@ def get_time_mask(beginning, end, time_arr):
 def get_cluster_assignments(num_clusters, sensor_transformed, fit_arr):
     """
     Returns an array containing the number of each cluster each data point in sensor_transformed is assigned to.
-    Clustering is performed using MiniBatchKMeans.
+    Clustering is performed using MiniBatchKMeans. Also in display.py because it is needed to make the graphs.
     
     Parameters
     ----------
@@ -170,4 +179,43 @@ def minute_average(time_arr, dBAS_arr):
         count += 1
         
     return(minute_time_arr, minute_dBAS_arr)
+
+def get_median(spl_arr):
+    """
+    Returns an array of median SPL values for each second over a specified set of days in June (weekdays or weekends). For 
+    each second of the day, it takes the median SPL over all weekdays, so that there is a medial SPL value for each second. 
+    For example, it takes the median SPL value for 4:00:00 a.m. for all weekdays in June.
+    
+    Parameters
+    ----------
+    spl_arr : float array with datetime index
+        Array with a datetime index and SPL values corresponding to the index.
+    """
+    
+    #Creates an array of all days in the spl arr
+    all_day_arr = []
+    print(np.unique(spl_arr.index.day))
+    for day in np.unique(spl_arr.index.day):
+        day_arr = [x for x in spl_arr.reset_index()['index'] \
+                   if x.day==day]
+        all_day_arr.append(day_arr)
+        print(str(day) + ': ' + str(len(day_arr)))
+
+    #Creates a matrix of each second of the day and all the days in the all_day_arr, in order to get the median across
+    #the days
+    day_time_matrix = np.ndarray((86400,len(all_day_arr)))
+    for i,day in enumerate(all_day_arr):
+        complete_day_arr = np.zeros(86400)
+        for time in day:
+            num_secs_since_beginning = 3600*time.hour + 60*time.minute + time.second
+            complete_day_arr[num_secs_since_beginning] = \
+            spl_arr.loc[time]
+        #changes zeros to NaN values for the purposes of getting a median
+        complete_day_arr[complete_day_arr<1] = np.nan
+
+        day_time_matrix[:,i] = complete_day_arr
+    
+    median_arr = np.nanmedian(day_time_matrix, axis=1)
+    
+    return median_arr
 
