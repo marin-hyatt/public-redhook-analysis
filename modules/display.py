@@ -7,8 +7,9 @@ from pytz import timezone
 from pandas.plotting import register_matplotlib_converters
 register_matplotlib_converters()
 import librosa
-from scipy import signal
+import scipy
 from scipy import ndimage
+from scipy import signal
 import matplotlib.dates as md
 
 def get_cluster_assignments(num_clusters, sensor_transformed, fit_arr):
@@ -312,16 +313,16 @@ def plot_truck_clusters(joined_df, peak_window_size, smoothing_window_size, ds_f
     ax1.set_xlim([joined_df_reset_index['index'].iloc[0], joined_df_reset_index['index'].iloc[-1]])
     
     if smoothing == 'median':
-        medfit = scipy.signal.medfilt(joined_df['dBAS'].values, smoothing_window_size)[::ds_factor]
+        medfit = signal.medfilt(joined_df['dBAS'].values, smoothing_window_size)[::ds_factor]
         ax1.plot(joined_df.iloc[::ds_factor].reset_index()['index'], medfit, color='g')
         max_y = medfit
     elif smoothing == 'mean':
-        mean_filter = scipy.ndimage.convolve(joined_df['dBAS'].values, 
+        mean_filter = ndimage.convolve(joined_df['dBAS'].values, 
                                              np.ones(smoothing_window_size) / smoothing_window_size)[::ds_factor]
         ax1.plot(joined_df.iloc[::ds_factor].reset_index()['index'], mean_filter, color='g')
         max_y = mean_filter        
     elif smoothing == 'gaussian':
-        gaussian_filter = scipy.ndimage.filters.gaussian_filter(joined_df['dBAS'].values, smoothing_window_size)[::ds_factor]
+        gaussian_filter = ndimage.filters.gaussian_filter(joined_df['dBAS'].values, smoothing_window_size)[::ds_factor]
         ax1.plot(joined_df.iloc[::ds_factor].reset_index()['index'], gaussian_filter, color='g')
         max_y = gaussian_filter
     else:
@@ -409,14 +410,12 @@ def plot_truck_clusters_median(joined_df_median, peak_window_size, \
     
     if smoothing == 'median':
         plot_y = scipy.signal.medfilt(joined_df_median['dBAS'].values, smoothing_window_size)[::ds_factor]
-        plot_y_median = scipy.signal.medfilt(joined_df_median['median_dBAS'].values, \
-                                             smoothing_window_size_ambient)[::ds_factor]
+        plot_y_median = scipy.signal.medfilt(joined_df_median['median_dBAS'].values, smoothing_window_size_ambient)[::ds_factor]
     elif smoothing == 'mean':
         plot_y = scipy.ndimage.convolve(joined_df_median['dBAS'].values, 
                                              np.ones(smoothing_window_size) / smoothing_window_size)[::ds_factor]
         plot_y_median = scipy.ndimage.convolve(joined_df_median['median_dBAS'].values, \
-                                                    np.ones(smoothing_window_size_ambient) / \
-                                               smoothing_window_size_ambient[::ds_factor]
+                                                    np.ones(smoothing_window_size_ambient) / smoothing_window_size_ambient)[::ds_factor]
     elif smoothing == 'gaussian':
         plot_y = scipy.ndimage.filters.gaussian_filter(joined_df_median['dBAS'].values, \
                                                                 smoothing_window_size)[::ds_factor]
@@ -517,8 +516,7 @@ def plot_truck_clusters_median_shading(joined_df_median, peak_window_size, \
         plot_y = scipy.ndimage.convolve(joined_df_median['dBAS'].values, 
                                              np.ones(smoothing_window_size) / smoothing_window_size)[::ds_factor]
         plot_y_median = scipy.ndimage.convolve(joined_df_median['median_dBAS'].values, \
-                                                    np.ones(smoothing_window_size_ambient) / smoothing_window_size_ambient\
-                                               [::ds_factor]
+                                                    np.ones(smoothing_window_size_ambient) / smoothing_window_size_ambient)[::ds_factor]
     elif smoothing == 'gaussian':
         plot_y = scipy.ndimage.filters.gaussian_filter(joined_df_median['dBAS'].values, \
                                                                 smoothing_window_size)[::ds_factor]
@@ -776,7 +774,7 @@ def plot_truck_clusters_normalized(joined_df_median, peak_window_size, \
 
 def plot_truck_clusters_normalized_final(joined_df_median, peak_window_size, \
                                        smoothing_window_size, smoothing_window_size_ambient, ds_factor, smoothing):
-       """
+    """
     Plots the SPL normalized to the median.
     
     Parameters
