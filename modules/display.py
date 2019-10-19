@@ -313,16 +313,16 @@ def plot_truck_clusters(joined_df, peak_window_size, smoothing_window_size, ds_f
     ax1.set_xlim([joined_df_reset_index['index'].iloc[0], joined_df_reset_index['index'].iloc[-1]])
     
     if smoothing == 'median':
-        medfit = signal.medfilt(joined_df['dBAS'].values, smoothing_window_size)[::ds_factor]
+        medfit = scipy.signal.medfilt(joined_df['dBAS'].values, smoothing_window_size)[::ds_factor]
         ax1.plot(joined_df.iloc[::ds_factor].reset_index()['index'], medfit, color='g')
         max_y = medfit
     elif smoothing == 'mean':
-        mean_filter = ndimage.convolve(joined_df['dBAS'].values, 
+        mean_filter = scipy.ndimage.convolve(joined_df['dBAS'].values, 
                                              np.ones(smoothing_window_size) / smoothing_window_size)[::ds_factor]
         ax1.plot(joined_df.iloc[::ds_factor].reset_index()['index'], mean_filter, color='g')
         max_y = mean_filter        
     elif smoothing == 'gaussian':
-        gaussian_filter = ndimage.filters.gaussian_filter(joined_df['dBAS'].values, smoothing_window_size)[::ds_factor]
+        gaussian_filter = scipy.ndimage.filters.gaussian_filter(joined_df['dBAS'].values, smoothing_window_size)[::ds_factor]
         ax1.plot(joined_df.iloc[::ds_factor].reset_index()['index'], gaussian_filter, color='g')
         max_y = gaussian_filter
     else:
