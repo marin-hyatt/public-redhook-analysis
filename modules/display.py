@@ -12,6 +12,9 @@ from scipy import ndimage
 from scipy import signal
 import matplotlib.dates as md
 
+def print_scipy():
+    print(scipy)
+
 def get_cluster_assignments(num_clusters, sensor_transformed, fit_arr):
     """
     Returns an array containing the number of each cluster each data point in sensor_transformed is assigned to.
