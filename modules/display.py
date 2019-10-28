@@ -453,7 +453,7 @@ def plot_truck_clusters_median_shading(joined_df_median, peak_window_size, \
                                        smoothing_window_size, smoothing_window_size_ambient, ds_factor, smoothing):
     """
     Plots the SPL over time with visual cues indicating the presence of trucks over time for one sensor. The shaded
-    regions indicate time when sound was recorded (versuss just SPL, which is constantly recorded). There is only
+    regions indicate time when sound was recorded (versus just SPL, which is constantly recorded). There is only
     shading when the SPL recorded at the time is greater than the median SPL. 
     SPL peaks corresponding to truck activity are plotted with red dots. SPL peaks corresponding to other noises are 
     plotted with gray dots. The median SPL is plotted in blue. The SPL is plotted in green. The recorded sound 
@@ -551,7 +551,7 @@ def plot_truck_clusters_median_shading(joined_df_median, peak_window_size, \
     fig.tight_layout()
     fig.show()
 
-def plot_truck_clusters_median_final(joined_df_median, peak_window_size, \
+def plot_truck_clusters_final(joined_df_median, peak_window_size, \
                                        smoothing_window_size, smoothing_window_size_ambient, ds_factor, smoothing):
     """
     This is the modeling function used in the presentation.
