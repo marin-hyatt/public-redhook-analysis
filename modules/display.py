@@ -12,9 +12,6 @@ from scipy import ndimage
 from scipy import signal
 import matplotlib.dates as md
 
-def print_scipy():
-    print(scipy)
-
 def get_cluster_assignments(num_clusters, sensor_transformed, fit_arr):
     """
     Returns an array containing the number of each cluster each data point in sensor_transformed is assigned to.
@@ -179,7 +176,7 @@ def plot_clusters(num_clusters, sensor_transformed, fit_arr, sensor_timestamps_d
     plt.show()
     return bins
 
-def plot_truck_clusters_all_measures(num_clusters, sensor_transformed, fit_arr, sensor_timestamps_dt, spl_time, spl_dBAS_mean, \
+def plot_clusters_all_measures(num_clusters, sensor_transformed, fit_arr, sensor_timestamps_dt, spl_time, spl_dBAS_mean, \
                   spl_dBAS_max, spl_dBAS_median, y_vals, bin_arr, clusters_plot_arr):
     """
     Plots a histogram of the frequency of cluster assignments over time for one sensor.
@@ -258,7 +255,7 @@ def plot_truck_clusters_all_measures(num_clusters, sensor_transformed, fit_arr, 
     fig.tight_layout()
     fig.show()
     
-def plot_truck_clusters(joined_df, peak_window_size, smoothing_window_size, ds_factor, smoothing):
+def plot_truck_clusters_first(joined_df, peak_window_size, smoothing_window_size, ds_factor, smoothing):
     """
     Plots the SPL over time with visual cues indicating the presence of trucks over time for one sensor. The shaded
     regions indicate time when sound was recorded (versus just SPL, which is constantly recorded). SPL peaks 
@@ -279,6 +276,11 @@ def plot_truck_clusters(joined_df, peak_window_size, smoothing_window_size, ds_f
         
     smoothing : String
         Smoothing type, e.g. mean, median, or gaussian.
+        
+    Returns
+    -------
+    fig : matplotlib figure
+        The visualization of SPL and truck activity given the parameters.
     """
     y_vals = []
     joined_df_reset_index = joined_df.reset_index()
@@ -348,7 +350,7 @@ def plot_truck_clusters(joined_df, peak_window_size, smoothing_window_size, ds_f
     ax1.set_ylim(joined_df['dBAS'].min())
     fig.set_size_inches(18.5, 10.5)
     fig.tight_layout()
-    fig.show()
+    return fig
     
 def plot_truck_clusters_median(joined_df_median, peak_window_size, \
                                        smoothing_window_size, smoothing_window_size_ambient, ds_factor, smoothing):
@@ -379,6 +381,11 @@ def plot_truck_clusters_median(joined_df_median, peak_window_size, \
         
     'smoothing' : String
         Type of smoothing. Either median, mean, or gaussian.
+    
+    Returns
+    -------
+    fig : matplotlib figure
+        The visualization of SPL and truck activity given the parameters.
     """
     y_vals = []
     joined_df_reset_index = joined_df_median.reset_index()
@@ -447,7 +454,7 @@ def plot_truck_clusters_median(joined_df_median, peak_window_size, \
     ax1.set_ylim(joined_df_median['dBAS'].min())
     fig.set_size_inches(18.5, 10.5)
     fig.tight_layout()
-    fig.show()
+    return fig
                                                
 def plot_truck_clusters_median_shading(joined_df_median, peak_window_size, \
                                        smoothing_window_size, smoothing_window_size_ambient, ds_factor, smoothing):
@@ -479,6 +486,11 @@ def plot_truck_clusters_median_shading(joined_df_median, peak_window_size, \
         
     'smoothing' : String
         Type of smoothing. Either median, mean, or gaussian.
+        
+    Returns
+    -------
+    fig : matplotlib figure
+        The visualization of SPL and truck activity given the parameters.
     """
     y_vals = []
     joined_df_reset_index = joined_df_median.reset_index()
@@ -549,7 +561,7 @@ def plot_truck_clusters_median_shading(joined_df_median, peak_window_size, \
     ax1.set_ylim(joined_df_median['dBAS'].min())
     fig.set_size_inches(18.5, 10.5)
     fig.tight_layout()
-    fig.show()
+    return fig
 
 def plot_truck_clusters_final(joined_df_median, peak_window_size, \
                                        smoothing_window_size, smoothing_window_size_ambient, ds_factor, smoothing):
@@ -581,6 +593,11 @@ def plot_truck_clusters_final(joined_df_median, peak_window_size, \
         
     'smoothing' : String
         Type of smoothing. Either median, mean, or gaussian.
+        
+    Returns
+    -------
+    fig : matplotlib figure
+        The visualization of SPL and truck activity given the parameters.
     """
     y_vals = []
     joined_df_reset_index = joined_df_median.reset_index()
@@ -657,7 +674,7 @@ def plot_truck_clusters_final(joined_df_median, peak_window_size, \
     ax1.set_ylim(joined_df_median['median_dBAS'].min())
     fig.set_size_inches(18.5, 10.5)
     fig.tight_layout()
-    fig.show()
+    return fig
 
 def plot_truck_clusters_normalized(joined_df_median, peak_window_size, \
                                        smoothing_window_size, smoothing_window_size_ambient, ds_factor, smoothing):
@@ -689,6 +706,11 @@ def plot_truck_clusters_normalized(joined_df_median, peak_window_size, \
         
     'smoothing' : String
         Type of smoothing. Either median, mean, or gaussian.
+        
+    Returns
+    -------
+    fig : matplotlib figure
+        The visualization of SPL and truck activity given the parameters.
     """
     y_vals = []
     joined_df_reset_index = joined_df_median.reset_index()
@@ -773,7 +795,7 @@ def plot_truck_clusters_normalized(joined_df_median, peak_window_size, \
     ax1.set_ylim(0)
     fig.set_size_inches(18.5, 10.5)
     fig.tight_layout()
-    fig.show()
+    return fig
 
 def plot_truck_clusters_normalized_final(joined_df_median, peak_window_size, \
                                        smoothing_window_size, smoothing_window_size_ambient, ds_factor, smoothing):
@@ -799,6 +821,11 @@ def plot_truck_clusters_normalized_final(joined_df_median, peak_window_size, \
         
     'smoothing' : String
         Type of smoothing. Either median, mean, or gaussian.
+        
+    Returns
+    -------
+    fig : matplotlib figure
+        The visualization of SPL and truck activity given the parameters.
     """
     y_vals = []
     joined_df_reset_index = joined_df_median.reset_index()
@@ -870,4 +897,4 @@ def plot_truck_clusters_normalized_final(joined_df_median, peak_window_size, \
     ax1.set_ylim(0, normalized_plot_y.max())
     fig.set_size_inches(18.5, 10.5)
     fig.tight_layout()
-    fig.show()
+    return fig
