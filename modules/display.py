@@ -293,9 +293,7 @@ def plot_truck_clusters_first(joined_df, peak_window_size, smoothing_window_size
     timestamp_peaks = joined_df_reset_index['index'][spl_peaks]
    
     truck_timestamp_peaks = spl_peaks_arr['index'].loc[spl_peaks_arr['assignment']==1]
-    print(truck_timestamp_peaks)
     truck_dBAS_peaks = spl_peaks_arr['dBAS'].loc[spl_peaks_arr['assignment']==1]
-    print(truck_dBAS_peaks)
     
     
     #Peaks for SPL values corresponding to other clusters
@@ -333,7 +331,6 @@ def plot_truck_clusters_first(joined_df, peak_window_size, smoothing_window_size
     else:
         raise Exception('Unknown smoothing type')
     
-    print(len(joined_df.iloc[::ds_factor]))
     #Plot regions corresponding to trucks
     ax1.fill_between(x=joined_df.iloc[::ds_factor].reset_index()['index'], \
                      y1=len(joined_df.iloc[::ds_factor]['dBAS'])*[joined_df['dBAS'].min()], \
@@ -728,9 +725,7 @@ def plot_truck_clusters_normalized(joined_df_median, peak_window_size, \
     timestamp_peaks = joined_df_reset_index['index'][spl_peaks]
    
     truck_timestamp_peaks = spl_peaks_arr['index'].loc[spl_peaks_arr['assignment']==1]
-    print(truck_timestamp_peaks)
     truck_dBAS_peaks = spl_peaks_arr['dBAS'].loc[spl_peaks_arr['assignment']==1]
-    print(truck_dBAS_peaks)
     
     
     #Peaks for SPL values corresponding to other clusters
@@ -839,7 +834,6 @@ def plot_truck_clusters_normalized_final(joined_df_median, peak_window_size, \
    
     truck_timestamp_peaks = spl_peaks_arr['index'].loc[spl_peaks_arr['assignment']==1]
     truck_dBAS_peaks = spl_peaks_arr['dBAS'].loc[spl_peaks_arr['assignment']==1]
-    print(len(truck_timestamp_peaks))
     
     #Peaks for SPL values corresponding to other clusters
     other_dBAS_peaks = spl_peaks_arr.loc[spl_peaks_arr['assignment']==2]['dBAS']
