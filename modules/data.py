@@ -277,15 +277,15 @@ def get_truck_peaks(joined_df_median, peak_window_size):
     truck_peaks_df : Dataframe
         A dataframe indexed by time
     """
-    
+    joined_df_reset_index = joined_df_median.reset_index()
     window = int((peak_window_size-1)/2)
     spl_peaks = librosa.util.peak_pick(joined_df_median['dBAS'], window, window, window, window, 3, 0)
     spl_peaks_arr = joined_df_reset_index.loc[spl_peaks]
     truck_timestamp_peaks = spl_peaks_arr['index'].loc[spl_peaks_arr['assignment']==1]
-    truck_dBAS_peaks = spl_peaks_arr['dBAS'].loc[spl_peaks_arr['assignment']==1]
+    truck_dBAS_peaks = (spl_peaks_arr['dBAS'].loc[spl_peaks_arr['assignment']==1]).to_numpy()
     
-    truck_peaks_df = pd.DataFrame(data=[truck_timestamp_peaks, truck_dBAS_peaks])
-    
+    truck_peaks_df = pd.DataFrame(data={'truck_peaks': truck_dBAS_peaks}, index=truck_timestamp_peaks)
+    print(truck_dBAS_peaks)
     return truck_peaks_df
     
 def get_subsample_mask(num_samples, target_arr):

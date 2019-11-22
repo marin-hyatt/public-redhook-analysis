@@ -603,7 +603,7 @@ def plot_truck_clusters_final(joined_df_median, peak_window_size, \
     window = int((peak_window_size-1)/2)
     spl_peaks = librosa.util.peak_pick(joined_df_median['dBAS'], window, window, window, window, 3, 0)
     spl_peaks_arr = joined_df_reset_index.loc[spl_peaks]
-    dBAS_peaks = joined_df_median['dBAS'][spl_peaks]
+    #dBAS_peaks = joined_df_median['dBAS'][spl_peaks]
     timestamp_peaks = joined_df_reset_index['index'][spl_peaks]
 
     truck_timestamp_peaks = spl_peaks_arr['index'].loc[spl_peaks_arr['assignment']==1]
