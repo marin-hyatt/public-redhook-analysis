@@ -1,11 +1,23 @@
 import numpy as np
 import pandas as pd
+import matplotlib
+import matplotlib.pyplot as plt
 from sklearn.cluster import MiniBatchKMeans
 import datetime 
 from datetime import timedelta
 import pytz
 from pytz import timezone
+from numpy import load
+import os
+from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA as sklearnPCA
+import h5py
+import pylab
+from pandas.plotting import register_matplotlib_converters
+register_matplotlib_converters()
+import librosa
 import matplotlib.dates as md
+import sys
 
 def create_dataframe(output_path, hdf5_path, csv_path, start_date, end_date, sensor_name, sample_size=1000, num_dimensions=45, \
                      num_clusters=64, truck_clusters=[5, 10, 11, 18, 20, 37, 42, 57, 63]):
@@ -47,13 +59,15 @@ def create_dataframe(output_path, hdf5_path, csv_path, start_date, end_date, sen
         listened to sound samples from each cluster and identified which clusters correspond to trucks.
         
     truck_clusters: array of ints
-    	The clusters that correspond to truck sounds. These need to be determined by listening to sound samples from each cluster
-        manually.
+    	The clusters that correspond to truck sounds. These need to be determined by listening to sound samples from each
+        cluster manually.
     """
     
     h5 = h5py.File(hdf5_path, 'r')
 
     d = h5['sound_data']
+    
+    print('done with reading hdf5 file')
 
     # Creating subsample of 10000 points from all four sensors
 
@@ -62,39 +76,54 @@ def create_dataframe(output_path, hdf5_path, csv_path, start_date, end_date, sen
     index = np.zeros(d.shape[0]).astype('bool')
     index[sample_nums] = True
     
+    print('done with indexing')
+    
     # Reading SPL data from csv
 
     df = pd.read_csv(csv_path, skiprows = 2, low_memory = False)
+    print(df.head())
 
     time_arr = np.empty(df.shape[0], dtype = datetime.datetime)
     timestamp_arr = df['timestamp'].values
     dBAS_arr = df['dBAS'].values
     
+    time_arr = [convert_timestamps(x) for x in timestamp_arr]
+    
     time_df = df
     time_df['timestamp'] = time_arr
+    
+    print('done with creating spl dataframe')
+    print(time_df.head())
     
     # Reducing dimensionality
 
     pca_45 = sklearnPCA(num_dimensions)
     projected_45 = pca_45.fit_transform(d['feature_vector'])
+    
+    print('done with PCA')
 
-    sensor_mask = data.get_sensor_mask(d['sensor_id'], sensor_name)
+    sensor_mask = get_sensor_mask(d['sensor_id'], sensor_name)
     sensor_transformed = projected_45[sensor_mask]
     sensor_timestamps = d[sensor_mask, 'timestamp']
-    sensor_timestamps_dt = [data.convert_timestamps(x) for x in sensor_timestamps]
+    sensor_timestamps_dt = [convert_timestamps(x) for x in sensor_timestamps]
 
-    time_arr = [data.convert_timestamps(x) for x in timestamp_arr]
+    time_arr = [convert_timestamps(x) for x in timestamp_arr]
     
     #Making dataframe with timestamps and cluster assignment
     
     #Getting cluster assignments
-    all_cluster_assignments = data.get_cluster_assignments(num_clusters, sensor_transformed, projected_45[index])
+    all_cluster_assignments = get_cluster_assignments(num_clusters, sensor_transformed, projected_45[index])
     seconds_sensor_timestamps_dt = [x.replace(microsecond=0) for x in sensor_timestamps_dt]
+    
+    print('done with getting cluster assignments')
 	
     #Creating the dataframe
     assignments_df = pd.DataFrame(data={'assignment':all_cluster_assignments}, \
                                   index = seconds_sensor_timestamps_dt)
     assignments_df.head()
+    
+    print('done with creating assignments_df')
+    print(assignments_df.head())
     
     #Removing duplicate entries
     removed_assignments_df = assignments_df[~assignments_df.index.duplicated()]
@@ -110,6 +139,8 @@ def create_dataframe(output_path, hdf5_path, csv_path, start_date, end_date, sen
     seconds_complete_timestamp = [x.replace(microsecond=0) for x in time_df['timestamp']]
     spl_df = pd.DataFrame(data={'dBAS': dBAS_arr}, index=seconds_complete_timestamp)
     
+    print('done with creating SPL dataframe with time index')
+    
     #Joining the SPL dataframe and the dataframe with assignments. This new dataframe uses the index of spl_df.
     all_joined_df = spl_df.join(removed_assignments_df, how='left')
     
@@ -119,47 +150,57 @@ def create_dataframe(output_path, hdf5_path, csv_path, start_date, end_date, sen
     all_joined_df = all_joined_df.replace(range(2,64), 2)
 
     all_joined_df.loc[pd.isnull(all_joined_df['assignment']), 'assignment'] = 0
+    
+    print('done with joining dataframe and replacing cluster assignments')
 	
     #Creating matrix of SPL values in each day (to get median SPL)
     spl_complete = spl_df['dBAS']
 
-    beginning_spl_indices = \
-    pd.date_range(datetime.datetime(2019, 6, 1, 4, 0, 0), datetime.datetime(2019, 6, 1, 4, 0, 42), periods=42)
-    beginning_spl_indices = [x.replace(microsecond=0, nanosecond=0) for x in beginning_spl_indices]
-    beginning_spl_indices = [pytz.utc.localize(x) for x in beginning_spl_indices]
-    beginning_spl_indices = [x.astimezone(pytz.timezone('US/Eastern')) for x in beginning_spl_indices]
+#     beginning_spl_indices = \
+#     pd.date_range(datetime.datetime(2019, 6, 1, 4, 0, 0), datetime.datetime(2019, 6, 1, 4, 0, 42), periods=42)
+#     beginning_spl_indices = [x.replace(microsecond=0, nanosecond=0) for x in beginning_spl_indices]
+#     beginning_spl_indices = [pytz.utc.localize(x) for x in beginning_spl_indices]
+#     beginning_spl_indices = [x.astimezone(pytz.timezone('US/Eastern')) for x in beginning_spl_indices]
 
-    beginning_spl = pd.Series(np.nan, index=beginning_spl_indices)
+#     beginning_spl = pd.Series(np.nan, index=beginning_spl_indices)
 
-    spl_complete_2 = pd.concat([beginning_spl, spl_complete])
+#     spl_complete_2 = pd.concat([beginning_spl, spl_complete])
     
-    #Series of SPL for the whole month, without the 42 second shift forward
-    spl_complete_month = spl_complete_2[:-43]
+#     print('done with creating complete SPL dataframe')
+    
+#     #Series of SPL for the whole month, without the 42 second shift forward
+#     spl_complete_month = spl_complete_2[:-43]
     
     #Creating median array of weekends
     #Creating arrays of SPL collected on weekdays and weekends
 
-    spl_complete_month_weekends = spl_complete_month[spl_complete_month.index.dayofweek >= 5]
-    spl_complete_month_weekdays = spl_complete_month[spl_complete_month.index.dayofweek < 5]
+    spl_weekends = spl_complete[spl_complete.index.dayofweek >= 5]
+    spl_weekdays = spl_complete[spl_complete.index.dayofweek < 5]
 
     #Removing duplicate times from both arrays
 
-    spl_complete_month_weekends = spl_complete_month_weekends[~spl_complete_month_weekends.index.duplicated()]
-    spl_complete_month_weekdays = spl_complete_month_weekdays[~spl_complete_month_weekdays.index.duplicated()]
+    spl_weekends = spl_weekends[~spl_weekends.index.duplicated()]
+    spl_weekdays = spl_weekdays[~spl_weekdays.index.duplicated()]
 
     #Getting median values for weekends and weekdays
 
-    weekend_medians = get_median(spl_complete_month_weekends)
-    weekday_medians = data.get_median(spl_complete_month_weekdays)
+    weekend_medians = get_median(spl_weekends)
+    print('done with getting weekend medians')
+    weekday_medians = get_median(spl_weekdays)
+    print('done with getting weekday medians')
     
     #Creating an array of the same size as the arrays in all_joined_df, and repeatedly filling it with median values
-    #Note: this array still has the 42 second shift, but I figured that in the long run it won't matter.
-    month_weekday_median = np.empty(len(spl_complete))
-    for i in range(len(spl_complete)):
-        #Filling with weekday median values first, will replace with weekend median values later
+
+    #Creating datetime indices spanning the whole month
+
+    medians_df_index = all_joined_df.reset_index()['index']
+
+    #Filling an array that spans the whole month, then filling it with median values for one day that are repeated
+    month_weekday_median = np.empty(len(medians_df_index))
+    for i in range(len(medians_df_index)):
         month_weekday_median[i] = weekday_medians[i%len(weekday_medians)]
         
-    # Making dataframes with median values for the month
+    print('done with creating and filling median array')
 
     #Creating dataframe with weekday medians for whole month
 
@@ -176,6 +217,8 @@ def create_dataframe(output_path, hdf5_path, csv_path, start_date, end_date, sen
 
     weekend_medians_df = pd.DataFrame({'median_dBAS':weekend_medians_df_values}, index=weekend_medians_df_indices)
     weekend_medians_df = weekend_medians_df[~weekend_medians_df.index.duplicated()]
+    
+    print('done with creating dataframe for weekday and weekend medians')
     
     # Replacing weekend values in dataframe with correct values
 
@@ -197,21 +240,53 @@ def create_dataframe(output_path, hdf5_path, csv_path, start_date, end_date, sen
 
     both_medians_df = both_medians_df.drop(['median_dBAS_x', 'median_dBAS_y'], axis=1)
     
+    print('done with joining dataframes and merging weekday and weekend data')
+    
     # Joining weekday and weekend medians to dataframe
 
     #Joining the median dataframe to the dataframe with SPL and cluster assignment
 
-    all_joined_df_cut_median = all_joined_df_cut.join(both_medians_df)
+    all_joined_df_median = all_joined_df.join(both_medians_df)
 
-    all_joined_df_cut_median.tail()
+    all_joined_df_median.tail()
 
-    removed_all_joined_df_cut_median = all_joined_df_cut_median[~all_joined_df_cut_median.index.duplicated()]
+    removed_all_joined_df_median = all_joined_df_median[~all_joined_df_median.index.duplicated()]
+    
+    print('done with creating final dataframe')
 
     #Saving dataframe to csv for later use
 
-    removed_all_joined_df_cut_median.to_csv(output_path)
-  #def get_truck_peaks():
+    removed_all_joined_df_median.to_csv(output_path)
     
+    print('done with saving dataframe to output')
+
+def get_truck_peaks(joined_df_median, peak_window_size):
+    """
+    Returns a dataframe with the timestamp and SPL value for peaks in SPL that correspond to trucks.
+    
+    Parameters
+    ----------
+    joined_df : dataframe
+        A dataframe containing timestamps, a column for cluster assignments, and dBAS values.
+    
+    peak_window_size : int
+        Parameter for peak picking. Cannot be lower than 3.
+        
+    Returns
+    -------
+    truck_peaks_df : Dataframe
+        A dataframe indexed by time
+    """
+    
+    window = int((peak_window_size-1)/2)
+    spl_peaks = librosa.util.peak_pick(joined_df_median['dBAS'], window, window, window, window, 3, 0)
+    spl_peaks_arr = joined_df_reset_index.loc[spl_peaks]
+    truck_timestamp_peaks = spl_peaks_arr['index'].loc[spl_peaks_arr['assignment']==1]
+    truck_dBAS_peaks = spl_peaks_arr['dBAS'].loc[spl_peaks_arr['assignment']==1]
+    
+    truck_peaks_df = pd.DataFrame(data=[truck_timestamp_peaks, truck_dBAS_peaks])
+    
+    return truck_peaks_df
     
 def get_subsample_mask(num_samples, target_arr):
     """
