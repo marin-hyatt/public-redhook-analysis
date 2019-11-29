@@ -19,6 +19,54 @@ import librosa
 import matplotlib.dates as md
 import sys
 
+def create_hdf5(sensor_timestamps, sensor_id, sensor_timestamps_orig, file_path, sensor_data){
+    """
+    Creates an hdf5 file with all of the data needed for analysis and visualization.
+    
+    Parameters
+    ----------
+    sensor_timestamps : numpy array
+        An array of timestamps (not converted into datetime format) for each sound sample. This timestamp is adjusted to reflect
+        the actual time in which the sample was recorded (not the time in which the 10 second recording was made).
+    
+    sensor_id : numpy array
+        An array containing the sensor ID for each sample.
+        
+    sensor_timestamps_orig : numpy array
+        An array of timestamps (not converted into datetime format) for each sound sample. This timestamp is not adjusted, 
+        meaning that it has the time that the 10 second recording was taken instead of the time of the acutal 1-second sample.
+        
+    file_path : numpy array
+        An array of the file paths of each sample. Should look like
+        "Users/marin/redhook/embeddings/sonycnodeb827ebc178d2.sonyc/2019-06-01/08/1559390446.46.npz".
+    
+    sensor_data : numpy array
+        An array of the 512-dimension embedding for each sample.
+        
+    """
+    sensor_timestamps = np.load('sensor_timestamps_arr.npy')
+    sensor_id = np.load('sensor_id_arr.npy')
+    sensor_timestamps_orig = np.load('sensor_timestamps_orig_arr.npy')
+    file_path = np.load('file_path_arr.npy')
+
+    sensor_data = np.load('sensor_data_arr.npy')
+
+    #Creating the hdf5 file
+    with h5py.File('sound_data_improved.hdf5', 'w') as h5:
+        d = h5.create_dataset('sound_data',
+                              (3388858,),
+                              dtype=[('timestamp', 'f8'),
+                                     ('timestamp_orig', 'f8'),
+                                     ('sensor_id', 'S128'),
+                                     ('feature_vector', 'f4', (512,)),
+                                     ('file_path', 'S128')
+                                    ],
+                                chunks=True,
+                                maxshape=(3388858 * 516,))
+        for idx in range(sensor_data.shape[0]):
+            d[idx] = (sensor_timestamps[idx], sensor_timestamps_orig[idx], sensor_id[idx], sensor_data[idx], file_path[idx])
+}
+
 def create_dataframe(output_path, hdf5_path, csv_path, start_date, end_date, sensor_name, sample_size=1000, num_dimensions=45, \
                      num_clusters=64, truck_clusters=[5, 10, 11, 18, 20, 37, 42, 57, 63]):
     """
