@@ -19,7 +19,7 @@ import librosa
 import matplotlib.dates as md
 import sys
 
-def create_hdf5(sensor_timestamps, sensor_id, sensor_timestamps_orig, file_path, sensor_data){
+def create_hdf5(sensor_timestamps, sensor_id, sensor_timestamps_orig, file_path, sensor_data):
     """
     Creates an hdf5 file with all of the data needed for analysis and visualization.
     
@@ -65,7 +65,7 @@ def create_hdf5(sensor_timestamps, sensor_id, sensor_timestamps_orig, file_path,
                                 maxshape=(3388858 * 516,))
         for idx in range(sensor_data.shape[0]):
             d[idx] = (sensor_timestamps[idx], sensor_timestamps_orig[idx], sensor_id[idx], sensor_data[idx], file_path[idx])
-}
+
 
 def create_dataframe(output_path, hdf5_path, csv_path, start_date, end_date, sensor_name, sample_size=1000, num_dimensions=45, \
                      num_clusters=64, truck_clusters=[5, 10, 11, 18, 20, 37, 42, 57, 63]):
