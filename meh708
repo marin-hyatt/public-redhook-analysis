@@ -1,0 +1,69 @@
+{
+ "cells": [
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import cv2"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [
+    {
+     "ename": "NameError",
+     "evalue": "name 'original_video_fname' is not defined",
+     "output_type": "error",
+     "traceback": [
+      "\u001b[0;31m\u001b[0m",
+      "\u001b[0;31mNameError\u001b[0mTraceback (most recent call last)",
+      "\u001b[0;32m<ipython-input-2-17eadd69bf15>\u001b[0m in \u001b[0;36m<module>\u001b[0;34m()\u001b[0m\n\u001b[0;32m----> 1\u001b[0;31m \u001b[0mvid_obj\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mcv2\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mVideoCapture\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0moriginal_video_fname\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[0m\u001b[1;32m      2\u001b[0m \u001b[0mvid_obj\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mset\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0mcv2\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mCAP_PROP_POS_FRAMES\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mframe_num\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      3\u001b[0m \u001b[0mres\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0mframe\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mvid_obj\u001b[0m\u001b[0;34m.\u001b[0m\u001b[0mread\u001b[0m\u001b[0;34m(\u001b[0m\u001b[0;34m)\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      4\u001b[0m \u001b[0;32mif\u001b[0m \u001b[0mres\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n\u001b[1;32m      5\u001b[0m     \u001b[0mcropped_frame\u001b[0m \u001b[0;34m=\u001b[0m \u001b[0mframe\u001b[0m\u001b[0;34m[\u001b[0m\u001b[0;36m200\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;36m850\u001b[0m\u001b[0;34m,\u001b[0m \u001b[0;36m1100\u001b[0m\u001b[0;34m:\u001b[0m\u001b[0;36m1750\u001b[0m\u001b[0;34m]\u001b[0m\u001b[0;34m\u001b[0m\u001b[0m\n",
+      "\u001b[0;31mNameError\u001b[0m: name 'original_video_fname' is not defined"
+     ]
+    }
+   ],
+   "source": [
+    "vid_obj = cv2.VideoCapture(original_video_fname)\n",
+    "vid_obj.set(cv2.CAP_PROP_POS_FRAMES, frame_num)\n",
+    "res, frame = vid_obj.read()\n",
+    "if res:\n",
+    "    cropped_frame = frame[200:850, 1100:1750]\n",
+    "    return cropped_frame\n",
+    "else:\n",
+    "    return False"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python (truck_display)",
+   "language": "python",
+   "name": "truck_display"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 2
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython2",
+   "version": "2.7.17"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 2
+}
