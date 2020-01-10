@@ -3,11 +3,12 @@ import cv2
 import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
+import h5py
 
 print("done importing")
 sys.stdout.flush()
 
-df = pd.read_csv('/green-projects/project-sonyc_redhook/workspace/share/redhook-analysis/output/max_dataframe.csv')
+df = pd.read_csv('/green-projects/project-sonyc_redhook/workspace/share/redhook-analysis/output/max_dataframe_cut.csv')
 print("read csv")
 sys.stdout.flush()
 
@@ -30,9 +31,22 @@ img_arr = [show_frame('/green-projects/project-sonyc_redhook/workspace/share/ori
 print("calculated img_arr")
 sys.stdout.flush()
 
-df['image'] = img_arr
-
-df.to_hdf('max_dataframe_img.hdf5', key='df')
+with h5py.File('max_img.hdf5', 'w') as h5:
+    d = h5.create_dataset('max_img',
+                          (len(df),),
+                          dtype=[('start_timestamp', 'f8'),
+                                 ('frame', 'i8'),
+                                 ('actual_timestamp', 'f8'),
+                                 ('area', 'f8', ),
+                                 ('probability', 'f8'),
+                                 ('img', 'i8', (650, 650, 3))
+                                ],
+                            chunks=True,
+                            maxshape=(len(df) * 650 * 650 * 3 * 6,))
+#     print(d[0])
+    for idx in df.index:
+        d[idx] = (df.iloc[idx]['start_timestamp'], df.iloc[idx]['frame'], df.iloc[idx]['actual_timestamp'], \
+                  df.iloc[idx]['area'], df.iloc[idx]['probability'], img_arr[idx])
 
 print("saved to hdf5")
 sys.stdout.flush()
