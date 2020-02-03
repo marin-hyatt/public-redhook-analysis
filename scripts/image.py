@@ -31,12 +31,12 @@ img_arr = [show_frame('/green-projects/project-sonyc_redhook/workspace/share/ori
 print("calculated img_arr")
 sys.stdout.flush()
 
-with h5py.File('max_img.hdf5', 'w') as h5:
+with h5py.File('max_img_int.hdf5', 'w') as h5:
     d = h5.create_dataset('max_img',
-                          (len(df),),
-                          dtype=[('start_timestamp', 'f8'),
+                          (len(df), 6),
+                          dtype=[('start_timestamp', 'i8'),
                                  ('frame', 'i8'),
-                                 ('actual_timestamp', 'f8'),
+                                 ('actual_timestamp', 'i8'),
                                  ('area', 'f8', ),
                                  ('probability', 'f8'),
                                  ('img', 'i8', (650, 650, 3))
