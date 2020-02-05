@@ -33,7 +33,7 @@ sys.stdout.flush()
 
 with h5py.File('max_img_int.hdf5', 'w') as h5:
     d = h5.create_dataset('max_img',
-                          (len(df), 6),
+                          (len(df), ),
                           dtype=[('start_timestamp', 'i8'),
                                  ('frame', 'i8'),
                                  ('actual_timestamp', 'i8'),
