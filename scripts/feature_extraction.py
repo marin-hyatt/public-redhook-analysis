@@ -23,6 +23,7 @@ for folder in \
 count = 0
 for folder in \
     os.listdir('/green-projects/project-sonyc_redhook/workspace/share/truck_audio/redhook_truck_audio/10s'):
+    if(int(folder[8:10]) < 14):
         for file in os.listdir\
         ('/green-projects/project-sonyc_redhook/workspace/share/truck_audio/redhook_truck_audio/10s/' + folder):
             audio_timestamp = int(file.split(".")[0])
@@ -36,3 +37,9 @@ for folder in \
             sys.stdout.flush()
 
 print('done with all embeddings')
+sys.stdout.flush()
+
+with open('embedding_list.pickle', 'wb') as f:
+    pickle.dump(embedding_list, f)
+print('done dumping embedding list')
+sys.stdout.flush()
