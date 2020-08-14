@@ -11,6 +11,11 @@ import scipy
 from scipy import ndimage
 from scipy import signal
 import matplotlib.dates as md
+import data
+from sklearn.decomposition import PCA as sklearnPCA
+from sklearn.preprocessing import StandardScaler
+import sklearn.utils
+from sklearn.metrics import precision_recall_fscore_support
 
 def get_cluster_assignments(num_clusters, sensor_transformed, fit_arr):
     """
@@ -892,3 +897,159 @@ def plot_truck_clusters_normalized_final(joined_df_median, peak_window_size, \
     fig.set_size_inches(18.5, 10.5)
     fig.tight_layout()
     return fig
+
+def search_and_display_audio(timestamp):
+    """
+    Searches for an audio file in two folders based on the timestamp given, then displays the audio file if it is found.
+
+    Paramaters
+    -----------
+    timestamp: string
+        A UTC timestamp of the audio file. An example is 1573663136.
+    """
+    audio_file = (sorted(Path('/green-projects/project-sonyc_redhook/workspace/share/truck_audio/redhook_truck_audio/10s/')\
+           .rglob(timestamp+'.wav')) + \
+         sorted(Path('/green-projects/project-sonyc_redhook/workspace/share/redhook_truck_audio/10s/')\
+           .rglob(timestamp+'*.wav')))
+    print(timestamp)
+    display(Audio(filename=audio_file[0]))
+
+def plot_label_distributions(false_pos_index, false_neg_index, true_pos_index, true_neg_index, arr, title, xlabel, ylabel):
+    """
+    Graphs the distribution of results (false positive, false negative, etc) over time.
+
+    Parameters
+    ----------
+
+    false_pos_index: array
+        Array of the indices of the elements that ended up being false positives.
+
+    false_neg_index: array
+        Array of the indices of the elements that ended up being false negatives.
+
+    true_pos_index: array
+        Array of the indices of the elements that ended up being true positives.
+
+    true_neg_index: array
+        Array of the indices of the elements that ended up being true negatives.
+
+    arr: array
+        The array indicating time. The indices will be applied to this array to show the distribution over time.
+
+    title: string
+        The title of the graph.
+
+    xlabel: string
+        The label for the x axis of the graph.
+
+    ylabel: string
+        The label for the y axis of the graph.
+    """
+    false_pos_arr = arr[false_pos_index]
+    false_neg_arr = arr[false_neg_index]
+    true_pos_arr = arr[true_pos_index]
+    true_neg_arr = arr[true_neg_index]
+    
+    plt.hist([false_pos_arr, false_neg_arr, true_pos_arr, true_neg_arr], \
+                label = ['false positive', 'false negative', 'true positive', 'true negative'], \
+                stacked=True)
+    plt.title(title)
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.legend()
+    plt.show()
+    
+def predict_truck_graph(x, y, groups, second_pca, classifier, cross_validation_method, arr):
+    """
+    Runs a model to predict whether an audio sample indicates a truck passing by, using cross-validation to split the training and testing sets, and then plots the distribution of false positives, false negatives, etc. over time. 
+    
+    Parameters
+    ----------
+    
+    x: ndarray
+        A multidimensional array with the shape (m, n, 512), where m and n can be any integer. This array contains the embeddings for each audio sample, produced using openl3.
+        
+    y: ndarray
+        An array containing the annotations corresponding with each embedding in x, meaning x and y should be the same length. Each annotation represents whether or not the embedding corresponds to a truck or not. 
+        
+    second_pca: pca object
+        The PCA to run on X after some preprocessing has been done. An example would be sklearn.decomposition.PCA(16). 
+        
+    classifier: sklearn model
+        The model to use to predict whether or not an audio embedding corresponds to a truck passby or not. An example would be LogisticRegression(class_weight='balanced', C=8.0).
+        
+    cross_validation_method: sklearn.model_selection object
+        The sklearn cross-validation method to use when training and testing the classifier. An example would be KFold(shuffle=True). 
+        
+    arr: array
+        The array indicating time. The indices will be applied to this array to show the distribution over time.
+    """
+    for train_index, test_index in cross_validation_method.split(x, groups=groups):
+        X_train, X_test =  x[train_index], x[test_index]
+        y_train, y_test = y[train_index], y[test_index]
+    
+        expanded_X_train = \
+        np.reshape(X_train, (X_train.shape[0]*X_train.shape[1], 512))
+
+        pca_45 = sklearnPCA(45)
+        pca_45.fit(expanded_X_train)
+
+        X_transformed = np.asarray([pca_45.transform(embedding) for embedding in X_train])
+
+        X_summaries = np.asarray([data.get_summary(embedding) for embedding in X_transformed])
+
+        #second round of PCA
+        pca_128 = second_pca
+        pca_128.fit(X_summaries)
+
+        X_transformed_again = pca_128.transform(X_summaries)
+
+        #standard scaler
+        scaler = StandardScaler()
+        scaler.fit(X_transformed_again)
+        X_scaler = scaler.transform(X_transformed_again)
+
+        #random forest on training data
+        clf = classifier.fit(X_scaler, y_train)
+
+        #manipulate embeddings for each X_test
+        expanded_X_test = \
+        np.reshape(X_test, (X_test.shape[0]*X_test.shape[1], 512))
+
+        X_test = np.asarray([pca_45.transform(embedding) for embedding in X_test])
+
+        X_test_summaries = np.asarray([data.get_summary(embedding) for embedding in X_test])
+
+        #second round of PCA on test data
+        X_test_transformed_again = pca_128.transform(X_test_summaries)
+
+        #standard scaler on test data
+        X_test_scaler = scaler.transform(X_test_transformed_again)
+
+        #get sample weights for y_test
+        sample_weights = sklearn.utils.class_weight.compute_sample_weight('balanced', y_test)
+
+        #get cross validation scores
+        print('clf score: ', clf.score(X_test_scaler, y_test, sample_weight = sample_weights))
+
+        #get f score, precision, recall
+        #note: what average should I use???
+        y_predicted = clf.predict(X_test_scaler)
+        print\
+        ('precision, recall, f score: ', precision_recall_fscore_support(y_test, y_predicted, average='macro'))
+        
+        #get indices of false positives
+        false_positive_index = test_index[(y_test != y_predicted) & (y_predicted=='y')]
+        
+        #get indices of false negatives
+        false_negative_index = test_index[(y_test != y_predicted) & (y_predicted=='n')]
+
+        #get indices of true positives
+        true_positive_index = test_index[(y_test == y_predicted) & (y_predicted=='y')]
+        
+        #get indices of true negatives
+        true_negative_index = test_index[(y_test == y_predicted) & (y_predicted=='n')]
+
+        plot_label_distributions\
+        (false_positive_index, false_negative_index, true_positive_index, true_negative_index, \
+         arr, 'Distribution of labels over days', 'date number', 'frequency of label')

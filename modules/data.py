@@ -18,6 +18,8 @@ register_matplotlib_converters()
 import librosa
 import matplotlib.dates as md
 import sys
+import display
+from sklearn.decomposition import PCA as sklearnPCA
 
 def create_hdf5(sensor_timestamps, sensor_id, sensor_timestamps_orig, file_path, sensor_data):
     """
@@ -547,4 +549,27 @@ def get_median(spl_arr):
     median_arr = np.nanmedian(day_time_matrix, axis=1)
     
     return median_arr
+
+def get_summary(embedding):
+    """
+    Returns an array of the mean, standard deviation, maximum, and minimum for each dimension in an embedding.
+    
+    Parameters
+    ----------
+    
+    embedding: ndarray
+        A multidimensional array with the shape (j, k, l) where j, k, and l can be any integer.
+        
+    Returns
+    -------
+    
+    embedding_summary: ndarray
+        An array with the mean, maximum, minimum, and standard deviation of each dimension (l) in the embedding. Should have a shape of l*4.
+    """
+    embedding_mean = np.mean(embedding, axis=0)
+    embedding_std = np.std(embedding, axis=0)
+    embedding_max = np.amax(embedding, axis=0)
+    embedding_min = np.amin(embedding, axis=0)
+    embedding_summary = np.concatenate((embedding_mean, embedding_max, embedding_min, embedding_std))
+    return embedding_summary
 
