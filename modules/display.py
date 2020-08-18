@@ -959,7 +959,7 @@ def plot_label_distributions(false_pos_index, false_neg_index, true_pos_index, t
     plt.legend()
     plt.show()
     
-def predict_truck_graph(x, y, groups, second_pca, classifier, cross_validation_method, arr):
+def predict_truck_graph(x, y, groups, second_pca, classifier, cross_validation_method, time_arr, rms_arr):
     """
     Runs a model to predict whether an audio sample indicates a truck passing by, using cross-validation to split the training and testing sets, and then plots the distribution of false positives, false negatives, etc. over time. 
     
@@ -981,8 +981,11 @@ def predict_truck_graph(x, y, groups, second_pca, classifier, cross_validation_m
     cross_validation_method: sklearn.model_selection object
         The sklearn cross-validation method to use when training and testing the classifier. An example would be KFold(shuffle=True). 
         
-    arr: array
+    time_arr: array
         The array indicating time. The indices will be applied to this array to show the distribution over time.
+        
+    rms_arr: array
+        An array of RMS values, the same length as time_arr. Used to show the distribution of labels over RMS.
     """
     for train_index, test_index in cross_validation_method.split(x, groups=groups):
         X_train, X_test =  x[train_index], x[test_index]
@@ -1050,6 +1053,19 @@ def predict_truck_graph(x, y, groups, second_pca, classifier, cross_validation_m
         #get indices of true negatives
         true_negative_index = test_index[(y_test == y_predicted) & (y_predicted=='n')]
 
+        #plot distributions of labels (false positive, false negative, etc) over time
         plot_label_distributions\
         (false_positive_index, false_negative_index, true_positive_index, true_negative_index, \
-         arr, 'Distribution of labels over days', 'date number', 'frequency of label')
+         time_arr, 'Distribution of labels over days', 'date number', 'frequency of label')
+        
+        #plot boxplot of RMS
+        plt.boxplot([rms_arr[false_positive_index], rms_arr[false_negative_index], \
+                    rms_arr[true_positive_index], rms_arr[true_negative_index]], \
+                   labels=['false positive', 'false negative', 'true positive', 'true negative'])
+        plt.title('Distribution of RMS over labels')
+        plt.show()
+        
+        #plot distributions of labels over RMS
+        plot_label_distributions\
+        (false_positive_index, false_negative_index, true_positive_index, true_negative_index, \
+         rms_arr, 'Distribution of labels over RMS', 'RMS (decibels)', 'frequency of label')
